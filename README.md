@@ -1,6 +1,6 @@
 # Simple markdown
 
-![Simple markdown logo](/assets/android-chrome-512x512.png "Simple markdown logo")
+![Simple markdown logo](/assets/android-chrome-192x192.png "Simple markdown logo")
 
 # Table of Contents
 - [Simple markdown](#simple-markdown)
