@@ -2,12 +2,28 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Simple markdown</title>
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <main class="application">
+      <section class="controls">
+        <button id="new-file">New File</button>
+        <button id="open-file">Open File</button>
+        <button id="save-markdown" disabled>Save File</button>
+        <button id="revert" disabled>Revert</button>
+        <button id="export-html">Save HTML</button>
+        <button id="show-file" disabled>Show File</button>
+        <button id="open-in-default-application" disabled>
+          Open in Default Application
+        </button>
+      </section>
+      <label for="markdown-view" class="visually-hidden"
+        >Markdown Content</label
+      >
+      <textarea class="raw-markdown" id="markdown-view"></textarea>
+      <div class="rendered-html" id="rendered-view"></div>
+    </main>
     <script type="module" src="/src/renderer.ts"></script>
   </body>
 </html>
