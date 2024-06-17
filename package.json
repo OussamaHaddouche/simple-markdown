@@ -3,7 +3,7 @@
   "productName": "simple-markdown",
   "version": "1.0.0",
   "description": "A simple Markdown editor built with Electron and Vite.",
-  "main": ".vite/build/main.js",
+  "main": ".vite/build/index.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
