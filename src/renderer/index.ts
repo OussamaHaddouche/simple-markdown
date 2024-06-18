@@ -27,8 +27,28 @@
  */
 
 import "./index.css";
+import { renderMarkdown } from "./markdown";
 import selectors from "./selectors";
 
+function renderHTMl(content: string) {
+  selectors.markdownView.value = content;
+  renderMarkdown(selectors.renderedView, content);
+}
+
+window.mainProcessApi.onFileOpen(renderHTMl);
+
 selectors.openFileButton.addEventListener("click", function openFileListener() {
-  window.mainProcessApi.showOpenDialog()
-})
+  window.mainProcessApi.showOpenDialog();
+});
+
+selectors.exportHtmlButton.addEventListener(
+  "click",
+  function openFileListener() {
+    window.mainProcessApi.showExportHtmlDialog(selectors.renderedView.innerHTML);
+  }
+);
+
+selectors.markdownView.addEventListener('input', async () => {
+  const markdown = selectors.markdownView.value;
+  renderMarkdown(selectors.renderedView, markdown);
+});

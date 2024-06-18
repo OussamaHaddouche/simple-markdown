@@ -5,5 +5,9 @@ declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 declare interface Window {
-  mainProcessApi: { showOpenDialog: () => void };
+  mainProcessApi: {
+    onFileOpen: (callback: (content: string) => void) => void;
+    showOpenDialog: () => void;
+    showExportHtmlDialog: (html: string) => void;
+  };
 }

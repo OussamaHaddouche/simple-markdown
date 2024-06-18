@@ -1,15 +1,18 @@
 import { ipcRenderer, contextBridge } from "electron";
-import { renderMarkdown } from "./renderer/markdown";
-import selectors from "./renderer/selectors";
-
-ipcRenderer.on("dialog:fileOpened", async function openFileListener(_, content: string) {
-  selectors.markdownView.value = content;
-  renderMarkdown(selectors.renderedView, content)
-})
 
 contextBridge.exposeInMainWorld("mainProcessApi", {
+  onFileOpen: (callback: (content: string) => void) => {
+    ipcRenderer.on(
+      "dialog:fileOpened",
+      function openFileListener(_, content: string) {
+        callback(content);
+      }
+    );
+  },
   showOpenDialog: () => {
-    ipcRenderer.send("dialog:fileOpened")
-  } 
-})
-
+    ipcRenderer.send("dialog:fileOpened");
+  },
+  showExportHtmlDialog: (html: string) => {
+    ipcRenderer.send("dialog:htmlFileExported", html);
+  },
+});
