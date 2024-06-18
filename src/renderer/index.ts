@@ -26,4 +26,9 @@
  * ```
  */
 
-import './index.css';
+import "./index.css";
+import selectors from "./selectors";
+
+selectors.openFileButton.addEventListener("click", function openFileListener() {
+  window.mainProcessApi.showOpenDialog()
+})

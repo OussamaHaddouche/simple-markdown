@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { readFile } from "fs/promises";
 import path from "path";
 
@@ -23,15 +23,15 @@ const createWindow = () => {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
     mainWindow.focus();
-    mainWindow.webContents.openDevTools()
-    showOpenDialog(mainWindow);
+    showOpenDialog(mainWindow)
+    mainWindow.webContents.openDevTools();
   });
 };
 
@@ -69,7 +69,14 @@ async function showOpenDialog(browserWindow: BrowserWindow) {
   const [filePath] = result.filePaths;
   openFile(browserWindow, filePath);
 }
-async function openFile(browserWindow: BrowserWindow ,filePath: string) {
-  const content = await readFile(filePath, { encoding: "utf-8" });
-  browserWindow.webContents.send("file-opened", content, filePath)
+
+async function openFile(browserWindow: BrowserWindow, filePath: string) {
+  const content =  await readFile(filePath, { encoding: "utf-8" });
+  browserWindow.webContents.send("dialog:fileOpened", content)
 }
+
+ipcMain.on("dialog:fileOpened", (event) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender)
+  if(!browserWindow) return;
+  showOpenDialog(browserWindow)
+})
