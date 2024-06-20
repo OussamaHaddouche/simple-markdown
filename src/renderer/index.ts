@@ -35,7 +35,14 @@ function renderHTMl(content: string) {
   renderMarkdown(selectors.renderedView, content);
 }
 
+function toggleShowFileButtons(hasFilePath: boolean) {
+  selectors.openInDefaultApplicationButton.disabled = !hasFilePath;
+  selectors.showFileButton.disabled = !hasFilePath;
+}
+
 window.mainProcessApi.onFileOpen(renderHTMl);
+
+window.mainProcessApi.onFilePathChange(toggleShowFileButtons);
 
 selectors.openFileButton.addEventListener("click", function openFileListener() {
   window.mainProcessApi.showOpenDialog();
@@ -44,11 +51,29 @@ selectors.openFileButton.addEventListener("click", function openFileListener() {
 selectors.exportHtmlButton.addEventListener(
   "click",
   function openFileListener() {
-    window.mainProcessApi.showExportHtmlDialog(selectors.renderedView.innerHTML);
+    window.mainProcessApi.showExportHtmlDialog(
+      selectors.renderedView.innerHTML
+    );
   }
 );
 
-selectors.markdownView.addEventListener('input', async () => {
+selectors.saveMarkdownButton.addEventListener(
+  "click",
+  function openFileListener() {
+    window.mainProcessApi.saveFile(selectors.markdownView.value);
+  }
+);
+
+selectors.markdownView.addEventListener("input", async () => {
   const markdown = selectors.markdownView.value;
   renderMarkdown(selectors.renderedView, markdown);
+  const changed = await window.mainProcessApi.checkForUnsavedChanges(markdown);
+  selectors.saveMarkdownButton.disabled = !changed;
+});
+
+selectors.showFileButton.addEventListener("click", () => {
+  window.mainProcessApi.showInFileExplorer();
+});
+selectors.openInDefaultApplicationButton.addEventListener("click", () => {
+  window.mainProcessApi.openInDefaultApp();
 });

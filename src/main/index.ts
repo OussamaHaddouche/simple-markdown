@@ -1,6 +1,59 @@
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  MenuItemConstructorOptions,
+  shell,
+} from "electron";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
+
+type MarkDownFile = {
+  content?: string;
+  filePath?: string;
+};
+
+let currentFile: MarkDownFile = {
+  content: "",
+};
+
+async function getCurrentFile(browserWindow: BrowserWindow) {
+  if (currentFile.filePath) return currentFile.filePath;
+  if (!browserWindow) return;
+  return await showSaveDialog(browserWindow);
+}
+
+function setCurrentFile(
+  browserWindow: BrowserWindow,
+  filePath: string,
+  content: string
+) {
+  currentFile.filePath = filePath;
+  currentFile.content = content;
+  browserWindow.setTitle(`${path.basename(filePath)} - ${app.name}`);
+  browserWindow.setRepresentedFilename(filePath);
+  app.addRecentDocument(filePath);
+  browserWindow.webContents.send("file:filePathChange", true);
+}
+
+function hasChanges(content: string) {
+  return (
+    currentFile.content?.replace(/[\n\r\t\b\f\v]/g, "") !==
+    content.replace(/[\n\r\t\b\f\v]/g, "")
+  );
+}
+
+ipcMain.handle(
+  "file:hasChanges",
+  async function handleFileHasChanges(event, content) {
+    const changed = hasChanges(content);
+    const browserWindow = BrowserWindow.fromWebContents(event.sender);
+    browserWindow?.setDocumentEdited(changed);
+    return changed;
+  }
+);
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -30,8 +83,9 @@ const createWindow = () => {
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
     mainWindow.focus();
-    mainWindow.webContents.openDevTools();
   });
+
+  return mainWindow;
 };
 
 // This method will be called when Electron has finished
@@ -68,6 +122,24 @@ ipcMain.on("dialog:htmlFileExported", (event, html: string) => {
   showExportHtmlDialog(browserWindow, html);
 });
 
+ipcMain.on("file:saveFile", (event, html: string) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!browserWindow) return;
+  saveFile(browserWindow, html);
+});
+
+ipcMain.on("file:showInExplorer", async () => {
+  if (currentFile.filePath) {
+    await shell.showItemInFolder(currentFile.filePath);
+  }
+});
+
+ipcMain.on("file:showInDefaultApp", async () => {
+  if (currentFile.filePath) {
+    await shell.openPath(currentFile.filePath);
+  }
+});
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
@@ -82,7 +154,8 @@ async function showOpenDialog(browserWindow: BrowserWindow) {
 }
 
 async function openFile(browserWindow: BrowserWindow, filePath: string) {
-  const content = await readFile(filePath, { encoding: "utf-8" });
+  const content = await readFile(filePath, { encoding: "utf8" });
+  setCurrentFile(browserWindow, filePath, content);
   browserWindow.webContents.send("dialog:fileOpened", content);
 }
 
@@ -107,3 +180,54 @@ async function showExportHtmlDialog(
 async function exportHTML(filePath: string, html: string) {
   await writeFile(filePath, html, { encoding: "utf8" });
 }
+
+async function showSaveDialog(browserWindow: BrowserWindow) {
+  const result = await dialog.showSaveDialog(browserWindow, {
+    title: "Save markdown",
+    filters: [{ name: "Markdown File", extensions: ["md"] }],
+  });
+
+  if (result.canceled) return;
+
+  const { filePath } = result;
+
+  if (!filePath) return;
+
+  return filePath;
+}
+
+async function saveFile(browserWindow: BrowserWindow, content: string) {
+  const filePath = await getCurrentFile(browserWindow);
+
+  if (!filePath) return;
+
+  await writeFile(filePath, content, { encoding: "utf8" });
+  setCurrentFile(browserWindow, filePath, content);
+}
+
+const menuTemplate: MenuItemConstructorOptions[] = [
+  {
+    label: "File",
+    submenu: [{
+      label: "Open",
+      click: () => {
+        let browserWindow = BrowserWindow.getFocusedWindow();
+        if(!browserWindow) browserWindow = createWindow();
+        showOpenDialog(browserWindow);
+      },
+      accelerator: "CmdOrCtrl+O"
+    }]
+  },
+  { label: "Edit", role: "editMenu" },
+];
+
+if (process.platform === "darwin") {
+  menuTemplate.unshift({
+    label: app.name,
+  });
+}
+
+const menu = Menu.buildFromTemplate(menuTemplate);
+
+Menu.setApplicationMenu(menu)
+
